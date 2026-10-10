@@ -13,7 +13,7 @@
     inv: {}, seedInv: {}, storage: {}, chest: {}, chestLv: 1,
     equip: { weapon: null, armor: null, trinket: null },
     stats: { gather: 0, till: 0, plant: 0, harvest: 0, build: 0, product: 0, fish: 0 },
-    opt: { grass: 2, shadow: true, audio: true, timeScale: 150 },
+    opt: { grass: 2, shadow: true, audio: true, timeScale: 150, follow: true },
     auto: null,
 
     /* ---------------- 物资 ---------------- */

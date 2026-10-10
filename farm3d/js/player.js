@@ -109,7 +109,9 @@
         P.camYaw -= ev.dx * 0.0042;
         P.camPitch = clamp(P.camPitch + ev.dy * 0.0030, -0.15, 1.05);
         P.camDist = clamp(P.camDist + ev.wheel * 0.85, 3.2, 15);
-      }
+        /* ponytail: 动过相机（拖拽/滚轮）就清零计时；停手 1.5 秒后才允许自动跟随接管 */
+        if (ev.dx || ev.dy || ev.wheel) P.camIdle = 0; else P.camIdle = (P.camIdle || 0) + dt;
+      } else P.camIdle = 0;
 
       /* ---- 移动（键位可自定义，方向键始终作为备选） ----
          ponytail: Input.axis 是移动端摇杆的连续输入（-1~1），有它时优先用它 —— 手轻推就慢走、
@@ -181,6 +183,15 @@
         P.speed = damp(P.speed, sp, 12, dt);
       } else {
         P.speed = damp(P.speed, 0, 12, dt);
+      }
+
+      /* ---- 镜头自动跟随（设置→画面 可关）：移动时相机缓缓绕到人物背后 ----
+         只跟「大致朝前走」：角色朝向与镜头前方夹角 <100° 才跟 —— 倒退绝不抢镜头，
+         横移/摇杆斜走时相机缓缓跟上；1.5 秒没碰相机才生效，钓鱼 / 室内不参与 */
+      if (F.Game.opt.follow !== false && !locked && sp > 0.2 && (P.camIdle || 0) > 1.5 &&
+          !P.indoor && !(F.Inter && F.Inter.fishing) &&
+          Math.abs(F.angDelta(P.camYaw + Math.PI, P.rot)) < 1.75) {
+        P.camYaw += F.angDelta(P.camYaw, P.rot + Math.PI) * Math.min(1, dt * 2.0);
       }
 
       /* ---- 垂直：地形贴附 / 桥面 / 游泳 / 跳跃 ---- */

@@ -1031,6 +1031,8 @@
         <input type="checkbox" id="s-shadow" ${G.opt.shadow ? 'checked' : ''}><b>动态阴影</b></div>
       <div class="srow"><span>音效</span>
         <input type="checkbox" id="s-audio" ${G.opt.audio ? 'checked' : ''}><b>交互音效</b></div>
+      <div class="srow"><span>镜头</span>
+        <input type="checkbox" id="s-follow" ${G.opt.follow !== false ? 'checked' : ''}><b>自动跟随人物（移动时镜头转到背后）</b></div>
       <div class="pcat">天气</div>
       <div class="srow"><span>天气系统</span>
         <input type="checkbox" id="s-wx" ${F.Weather && F.Weather.enabled ? 'checked' : ''}><b>动态天气与增益/减益</b></div>
@@ -1061,6 +1063,8 @@
     sh.onchange = () => { G.opt.shadow = sh.checked; F.World.setShadows(sh.checked); };
     const au = wrap.querySelector('#s-audio');
     au.onchange = () => { G.opt.audio = au.checked; F.Audio2.on = au.checked; };
+    const fo = wrap.querySelector('#s-follow');
+    if (fo) fo.onchange = () => { G.opt.follow = fo.checked; F.Player.camIdle = 0; };
     const wx = wrap.querySelector('#s-wx');
     if (wx) wx.onchange = () => {
       F.Weather.enabled = wx.checked;

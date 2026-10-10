@@ -1877,6 +1877,40 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
     cur1.cv === 'none' && cur1.cls && cur2.cv !== 'none' && !cur2.cls);
   await page.evaluate(() => window.FARM.UI.closePanel());
 
+  /* 9. 镜头自动跟随：横移（A）时角色朝向与镜头前方有夹角，相机应自己绕过去；
+     关掉开关后相机保持不动（量相机 yaw 的净变化，角色朝向在移动中本来就会转） */
+  const camYawOff = () => page.evaluate(() => {
+    const P = window.FARM.Player;
+    let d = (P.camYaw - P._y0) % (Math.PI * 2);
+    if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  });
+  await page.evaluate(() => {
+    const P = window.FARM.Player;
+    window.FARM.Game.opt.follow = true;
+    P.camYaw = P.rot + Math.PI;            /* 从正后方出发 */
+    P._y0 = P.camYaw;
+    P.camIdle = 9;                          /* 视为很久没碰相机 */
+  });
+  await page.keyboard.down('KeyA');
+  await page.waitForTimeout(9000);          /* 软渲染 ~1.3fps，给足转动时间 */
+  await page.keyboard.up('KeyA');
+  const dOn = await camYawOff();
+  await page.evaluate(() => {
+    const P = window.FARM.Player;
+    window.FARM.Game.opt.follow = false;
+    P.camYaw = P.rot + Math.PI;
+    P._y0 = P.camYaw;
+    P.camIdle = 9;
+  });
+  await page.keyboard.down('KeyA');
+  await page.waitForTimeout(2600);
+  await page.keyboard.up('KeyA');
+  const dOff = await camYawOff();
+  console.log('   跟随 =', JSON.stringify({ on: +dOn.toFixed(2), off: +dOff.toFixed(2) }));
+  ok('镜头自动跟随：横移 3 秒相机跟转（>1.2 rad）；关掉后不动（<0.1 rad）',
+    Math.abs(dOn) > 1.2 && Math.abs(dOff) < 0.1);
+
   console.log(errs.length ? '\n运行时错误:\n' + errs.slice(0, 5).join('\n') : '\n无 JS 错误');
   await browser.close();
   process.exit(fails ? 1 : 0);
