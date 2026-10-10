@@ -341,7 +341,7 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   });
   console.log('   植被层 =', JSON.stringify(flora));
   ok('白花簇撒布成片 + 浆果丛转正为采集节点（全图 2000+ 株、真实采集出浆果）',
-    flora.layers === 1 && flora.counts[0] > 50 && Math.abs(flora.wind - flora.grassStr) < 0.5 &&
+    flora.layers === 2 && flora.counts[0] > 50 && Math.abs(flora.wind - flora.grassStr) < 0.5 &&
     flora.bbCount > 2000 && flora.bb.exists && flora.bb.berry >= 2);
 
   /* 5.56 空格跳跃回归：普通按键 / 输入法 Process / 脏键位 / 体力不足提示 / 焦点残留 */
@@ -1977,6 +1977,43 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   ok('手势扩展兜底：右键拖动被吞时弹出「建议关闭鼠标手势」的提示', /鼠标手势扩展/.test(hint));
   console.log('   兜底提示 =', JSON.stringify(hint.slice(0, 40)));
   await page.evaluate(() => { const d = document.getElementById('guard-hint'); if (d) d.remove(); });
+
+  /* 12. 山坡岩石化：全图找最陡的坡，传送过去强制重建装饰层 —— 岩石必须真的撒出来了 */
+  const rocks = await page.evaluate(() => {
+    const F = window.FARM, T = F.T;
+    F.UI.closePanel();                             /* 前面测试可能留着面板，挡镜头 */
+    let best = null;
+    for (let a = 0; a < 6.28; a += 0.12) for (let r = 50; r < 260; r += 10) {
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      const s = T.slopeAt(x, z), h = T.hAt(x, z);
+      /* 挑「真正的山坡」（0.5~0.9），且坡脚退 10m 必须是陆地缓坡（不然站到湖里拍照） */
+      if (s < 0.5 || s > 0.9 || h < 3) continue;
+      const gx = T.hAt(x + 8, z) - T.hAt(x - 8, z), gz = T.hAt(x, z + 8) - T.hAt(x, z - 8);
+      const gl = Math.hypot(gx, gz) || 1;
+      const fx = x - (gx / gl) * 10, fz = z - (gz / gl) * 10;
+      if (T.hAt(fx, fz) < 1.2 || T.slopeAt(fx, fz) > 0.35) continue;
+      /* 山坡体量：周边 30m 内陡坡采样点越多越适合当证据（避免选中一个小土包） */
+      let size = 0;
+      for (let aa = 0; aa < 6.28; aa += 0.5) for (const rr of [8, 16, 24]) {
+        if (T.slopeAt(x + Math.cos(aa) * rr, z + Math.sin(aa) * rr) > 0.45) size++;
+      }
+      if (!best || size > best.size) best = { x, z, s, fx, fz, gx, gz, gl, size };
+    }
+    if (!best) return { found: false };
+    const P = F.Player;
+    P.pos.set(best.fx, T.hAt(best.fx, best.fz), best.fz);
+    P.camYaw = Math.atan2(best.gx, best.gz);   /* 相机看向爬坡方向 */
+    P.camPitch = 0.32; P.camDist = 8;
+    P.updateCamera(0, true);
+    F.World.updateGrass(best.x, best.z, 0.016, true);   /* 重建圈以坡上点为圆心：数的是山坡上的岩石 */
+    const layer = (F.World.flora || []).find(L => L.sink);
+    return { found: true, slope: +best.s.toFixed(2), count: layer ? layer.mesh.count : -1 };
+  });
+  console.log('   山坡岩石 =', JSON.stringify(rocks));
+  ok('山坡岩石化：陡坡上撒出装饰岩石层（>10 块）', rocks.found && rocks.count > 10);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: path.join(__dirname, 'production', 'qa', 'evidence', 'hill-rocks.png') });
+  await page.evaluate(() => { const P = window.FARM.Player; P.pos.set(2, 0, 104); });
 
   console.log(errs.length ? '\n运行时错误:\n' + errs.slice(0, 5).join('\n') : '\n无 JS 错误');
   await browser.close();

@@ -172,7 +172,13 @@
 
       const pd = T.pathDist(x, z);
       if (pd < 6.5) c.lerp(C.gravel, (1 - smoothstep(2.9, 6.0, pd)) * 0.92);
-      if (slope > 0.42) c.lerp(C.rock, smoothstep(0.42, 0.95, slope) * 0.85);
+      /* 山坡岩石化：阈值放宽到 0.34，并在岩石色上叠两层噪声 ——
+         中频做「碎石斑驳」、高频做明暗变化，山坡呈现岩草交错的贴图感而不是一整片纯色 */
+      if (slope > 0.34) {
+        const rk = smoothstep(0.34, 0.88, slope);
+        c.lerp(C.rock, Math.min(1, rk * (0.55 + 0.75 * F.fbm(x * 0.11 + 3, z * 0.11 - 7, 2))));
+        if (rk > 0.2) c.offsetHSL(0, 0, (F.fbm(x * 0.42, z * 0.42, 2) - 0.5) * 0.11 * rk);
+      }
       if (h > 19) c.lerp(C.rock, smoothstep(19, 26, h) * 0.55);
       if (h > 27) c.lerp(C.rockHi, smoothstep(27, 36, h) * 0.80);
       if (h < 2.2) c.lerp(C.sand, smoothstep(2.2, 0.55, h) * 0.90);
@@ -440,7 +446,7 @@
            float phase = ip.x * 0.41 + ip.z * 0.33;
            float sway  = sin( uTime * 1.9 + phase ) * 0.6 + sin( uTime * 4.1 + phase * 1.6 ) * 0.18;
            float amp   = uWindStr * ( 0.35 + gust * 0.9 );
-           float f     = pow( clamp( transformed.y / ${hRef}, 0.0, 1.0 ), 1.5 );
+           float f     = pow( clamp( transformed.y / ${Number(hRef).toFixed(4)}, 0.0, 1.0 ), 1.5 );
            transformed.x += wd.x * sway * amp * f * 0.3;
            transformed.z += wd.y * sway * amp * f * 0.3;
            vec4 wp2 = modelMatrix * vec4( ip + transformed, 1.0 );
@@ -450,7 +456,7 @@
       };
       mat.customProgramCacheKey = () => 'flora-' + key;
     };
-    const mk = (geo, cap, base, R, cond) => {
+    const mk = (geo, cap, base, R, cond, opts) => {
       const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
       windInject(mat, base.toFixed(2), geo.userData.floraH || 0.2);
       const mesh = new THREE.InstancedMesh(geo, mat, cap);
@@ -458,7 +464,7 @@
       mesh.castShadow = false; mesh.receiveShadow = false;
       mesh.count = 0;
       scene.add(mesh);
-      FLORA.push({ mesh, mat, cap, base, spacing: base, R, cond, cx: 1e9, cz: 1e9, key: '' });
+      FLORA.push(Object.assign({ mesh, mat, cap, base, spacing: base, R, cond, cx: 1e9, cz: 1e9, key: '' }, opts));
     };
     /* 成片白色小花：草地上密铺，避开路面 / 农田 / 林芯密林 */
     /* ponytail: 浆果丛装饰层已撤销 —— 改为真正的采集节点 NODE_DEFS.berrybush（entities.js），
@@ -466,6 +472,14 @@
     const daisy = F.PROPS.flora('daisy'); daisy.userData.floraH = 0.2;
     mk(daisy, 900, 3.4, 40,
       (x, z, h) => h > 1.2 && h < 15 && T.slopeAt(x, z) < 0.5 && T.pathDist(x, z) > 2.2 && !T.zoneAt(x, z) && !T.inForestCore(x, z));
+    /* 山坡碎石：陡坡上撒低模岩石（与采集矿石同画法的纯装饰层，不碰撞不可采），
+       配合地形的岩石斑驳色，山坡有「岩石贴图」的质感；
+       ponytail: floraH 顶到 999 → 风 sway 的高度因子 f≈0，岩石纹丝不动但保留距离渐隐。
+       必须写 999.0：这段数字会被原样插进 GLSL，int 会把顶点着色器编挂 */
+    const rock = F.PROPS.rock('plain'); rock.userData.floraH = 999.0;
+    mk(rock, 420, 5.2, 46,
+      (x, z, h) => h > 1.0 && T.slopeAt(x, z) > 0.40 && T.pathDist(x, z) > 2.6 && !T.zoneAt(x, z),
+      { sink: 0.24 });
     W.flora = FLORA;
   }
 
@@ -490,7 +504,7 @@
           if (!L.cond(x, z, h)) continue;
           const s = 0.8 + h1 * 0.5;
           _ge.set(0, h2 * 6.283, 0); _gq.setFromEuler(_ge);
-          _gv.set(x, h - 0.03, z); _gs.set(s, s, s);
+          _gv.set(x, h - (L.sink || 0.03), z); _gs.set(s, s, s);
           _gm.compose(_gv, _gq, _gs);
           L.mesh.setMatrixAt(count, _gm);
           count++;
