@@ -420,8 +420,13 @@
     B.add('dock', 96, -178, 1.9, true);
   }
 
-  /* 手机 / 平板（粗指针设备）：一次判定，后面几处降档都用得着 */
-  const COARSE = (F.coarseDevice = (navigator.maxTouchPoints > 1) || (window.matchMedia && matchMedia('(pointer: coarse)').matches));
+  /* 手机 / 平板（粗指针设备）：一次判定，后面几处降档都用得着。
+     ponytail: 必须「没有精确指针」才算手机 —— 触屏笔记本/一体机 maxTouchPoints>1，
+     旧判定会把它们误伤成手机档：草锁低档、阴影默认关、渲染比压到 1.25 */
+  const COARSE = (F.coarseDevice = !!(
+    (window.matchMedia && matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 1) &&
+    !(window.matchMedia && matchMedia('(pointer: fine)').matches)
+  ));
 
   /* ------------------------- 启动 ------------------------- */
   const TASKS = [

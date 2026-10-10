@@ -155,6 +155,26 @@ const ASSETS = path.join(__dirname, '..', 'farm3d-android', 'app', 'src', 'main'
   await page.screenshot({ path: path.join(__dirname, 'production', 'qa', 'evidence', 'mobile-about.png') });
   await page.evaluate(() => window.FARM.UI.closePanel());
 
+  /* 6. UI 全机型自适应：小屏收缩、平板放大，摇杆直径跟 --ms 走，测完还原视口 */
+  const BASE = { width: 802, height: 293 };
+  await page.setViewportSize({ width: 640, height: 320 });
+  await page.waitForTimeout(350);
+  const small = await page.evaluate(() => ({
+    ms: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ms')),
+    joy: document.getElementById('mjoy').clientWidth,
+  }));
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForTimeout(350);
+  const big = await page.evaluate(() => ({
+    ms: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ms')),
+    joy: document.getElementById('mjoy').clientWidth,
+  }));
+  await page.setViewportSize(BASE);
+  await page.waitForTimeout(350);
+  console.log('   自适应 =', JSON.stringify({ small, big }));
+  ok('UI 全机型自适应：小屏 ms<1、平板 ms>1，摇杆直径随缩放变化',
+    small.ms < 1 && big.ms > 1 && small.joy < big.joy);
+
   await page.screenshot({ path: path.join(__dirname, 'production', 'qa', 'evidence', 'mobile-touch.png') });
   ok('无 JS 错误', errs.length === 0);
   if (errs.length) console.log('   错误：', errs.slice(0, 5).join(' | '));

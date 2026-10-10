@@ -15,48 +15,51 @@
   const F = window.FARM;
 
   /* ---------------- 手机端 UI 适配样式 ----------------
-     #corner 那一列功能按钮在桌上貌不惊人，到手机上十四行会挤爆屏幕 —— 默认收起，点「菜单」展开 */
+     #corner 那一列功能按钮在桌上貌不惊人，到手机上十四行会挤爆屏幕 —— 默认收起，点「菜单」展开
+     所有尺寸乘 var(--ms)（JS 按屏幕短边实时算）：小屏收一收、平板放大一点，
+     加上刘海/手势条的 env(safe-area-inset-*)，全机型自适应 */
   const CSS = `
-html.mobile #topbar{min-width:0;padding:7px 10px}
-html.mobile #clock{font-size:12px}
+html.mobile #topbar{min-width:0;padding:calc(7px*var(--ms,1)) calc(10px*var(--ms,1))}
+html.mobile #clock{font-size:calc(12px*var(--ms,1))}
 html.mobile #vitals{margin-top:5px;gap:3px}
-html.mobile #vstatus,#topbar .vrow{font-size:11px}
-html.mobile #minimap{right:10px;top:10px;padding:6px}
-html.mobile #mm{width:104px;height:104px}
-html.mobile #mm-label{font-size:10px}
-html.mobile #prompt{bottom:104px;font-size:13px;padding:6px 14px}
-html.mobile #nodeinfo{max-width:min(300px,84vw);font-size:12px}
-html.mobile #hotbar{gap:5px;bottom:10px}
-html.mobile .slot{width:50px;height:48px;border-radius:10px}
-html.mobile .slot b{font-size:17px}
-html.mobile #seedbar{bottom:66px}
-html.mobile .cbtn{min-width:106px;padding:11px 14px;font-size:14px}
-html.mobile #corner{display:none;right:10px;bottom:calc(96px + env(safe-area-inset-bottom));
+html.mobile #vstatus,#topbar .vrow{font-size:calc(11px*var(--ms,1))}
+html.mobile #minimap{right:calc(10px*var(--ms,1));top:calc(10px*var(--ms,1));padding:6px}
+html.mobile #mm{width:calc(104px*var(--ms,1));height:calc(104px*var(--ms,1))}
+html.mobile #mm-label{font-size:calc(10px*var(--ms,1))}
+html.mobile #prompt{bottom:calc(104px*var(--ms,1));font-size:calc(13px*var(--ms,1));padding:6px 14px}
+html.mobile #nodeinfo{max-width:min(300px,84vw);font-size:calc(12px*var(--ms,1))}
+html.mobile #hotbar{gap:calc(5px*var(--ms,1));bottom:calc(10px*var(--ms,1))}
+html.mobile .slot{width:calc(50px*var(--ms,1));height:calc(48px*var(--ms,1));border-radius:10px}
+html.mobile .slot b{font-size:calc(17px*var(--ms,1))}
+html.mobile #seedbar{bottom:calc(66px*var(--ms,1))}
+html.mobile .cbtn{min-width:calc(106px*var(--ms,1));padding:calc(11px*var(--ms,1)) calc(14px*var(--ms,1));font-size:calc(14px*var(--ms,1))}
+html.mobile #corner{display:none;right:calc(10px*var(--ms,1));bottom:calc(96px*var(--ms,1) + env(safe-area-inset-bottom));
   max-height:52vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   padding:6px;border-radius:14px;background:rgba(255,255,255,.55);backdrop-filter:blur(8px)}
 html.mobile.corner-open #corner{display:flex}
 #mtouch{position:absolute;inset:0;z-index:8;pointer-events:none;touch-action:none}
 #mtouch>*{pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
-#mjoy{position:absolute;left:calc(16px + env(safe-area-inset-left));bottom:calc(78px + env(safe-area-inset-bottom));
-  width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.30);border:1px solid rgba(60,90,60,.18);
+#mjoy{position:absolute;left:calc(16px*var(--ms,1) + env(safe-area-inset-left));bottom:calc(78px*var(--ms,1) + env(safe-area-inset-bottom));
+  width:calc(118px*var(--ms,1));height:calc(118px*var(--ms,1));border-radius:50%;background:rgba(255,255,255,.30);border:1px solid rgba(60,90,60,.18);
   box-shadow:0 6px 22px rgba(20,40,25,.16)}
-#mjoy-k{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;
+#mjoy-k{position:absolute;left:50%;top:50%;width:calc(52px*var(--ms,1));height:calc(52px*var(--ms,1));
+  margin:calc(-26px*var(--ms,1)) 0 0 calc(-26px*var(--ms,1));border-radius:50%;
   background:rgba(255,255,255,.86);border:1px solid var(--bd);box-shadow:0 4px 14px rgba(20,40,25,.22);
   transition:transform .06s linear}
-#mact{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(78px + env(safe-area-inset-bottom));
-  display:flex;flex-direction:column-reverse;align-items:flex-end;gap:10px}
+#mact{position:absolute;right:calc(14px*var(--ms,1) + env(safe-area-inset-right));bottom:calc(78px*var(--ms,1) + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column-reverse;align-items:flex-end;gap:calc(10px*var(--ms,1))}
 .mkey{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
   border:1px solid rgba(60,90,60,.18);border-radius:50%;background:rgba(255,255,255,.86);
-  box-shadow:0 6px 22px rgba(20,40,25,.18);color:var(--ink);font-size:13px;line-height:1.1}
-.mkey b{font-size:10px;color:var(--dim);font-weight:400}
-.mkey.big{width:82px;height:82px;font-size:16px}
-.mkey.mid{width:62px;height:62px}
+  box-shadow:0 6px 22px rgba(20,40,25,.18);color:var(--ink);font-size:calc(13px*var(--ms,1));line-height:1.1}
+.mkey b{font-size:calc(10px*var(--ms,1));color:var(--dim);font-weight:400}
+.mkey.big{width:calc(82px*var(--ms,1));height:calc(82px*var(--ms,1));font-size:calc(16px*var(--ms,1))}
+.mkey.mid{width:calc(62px*var(--ms,1));height:calc(62px*var(--ms,1))}
 .mkey.on{background:linear-gradient(180deg,#fff,#e9f6e6);border-color:var(--green);box-shadow:0 0 0 2px rgba(90,168,106,.35),var(--sh)}
-#mmenu{position:absolute;right:calc(14px + env(safe-area-inset-right));top:calc(10px + env(safe-area-inset-top));
-  padding:9px 13px;border-radius:11px;background:var(--glass);border:1px solid var(--bd);
-  box-shadow:var(--sh);font-size:13px;color:var(--ink)}
-#mtip{position:absolute;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);
-  padding:8px 14px;border-radius:16px;background:rgba(28,40,30,.82);color:#f2f7f0;font-size:12px;
+#mmenu{position:absolute;right:calc(14px*var(--ms,1) + env(safe-area-inset-right));top:calc(10px*var(--ms,1) + env(safe-area-inset-top));
+  padding:calc(9px*var(--ms,1)) calc(13px*var(--ms,1));border-radius:11px;background:var(--glass);border:1px solid var(--bd);
+  box-shadow:var(--sh);font-size:calc(13px*var(--ms,1));color:var(--ink)}
+#mtip{position:absolute;left:50%;top:calc(10px*var(--ms,1) + env(safe-area-inset-top));transform:translateX(-50%);
+  padding:8px 14px;border-radius:16px;background:rgba(28,40,30,.82);color:#f2f7f0;font-size:calc(12px*var(--ms,1));
   max-width:82vw;text-align:center;line-height:1.5}
 #cv{touch-action:none}
 `;
@@ -77,6 +80,26 @@ html.mobile.corner-open #corner{display:flex}
   function build() {
     document.documentElement.classList.add('mobile');
     const st = el('style'); st.textContent = CSS; document.head.appendChild(st);
+
+    /* ---------------- 全机型自适应 ----------------
+       缩放系数 = 短边 / 420（参考机型 420dp），钳在 0.78~1.35：
+       5 寸小屏 → 收缩不挡视野；平板/折叠屏 → 放大好按；超矮屏（带手势条的 21:9）再收一档 */
+    const fit = () => {
+      let s = Math.min(innerWidth, innerHeight) / 420;
+      s = Math.max(0.78, Math.min(1.35, s));
+      if (innerHeight < 340) s *= 0.92;
+      document.documentElement.style.setProperty('--ms', s.toFixed(3));
+    };
+    fit();
+    addEventListener('resize', fit);
+    addEventListener('orientationchange', fit);
+    if (window.visualViewport) visualViewport.addEventListener('resize', fit);
+    /* ponytail: 模拟器/部分 WebView 改视口不派发 resize —— 每帧比一眼，变了才重算（开销可忽略） */
+    let lw = innerWidth, lh = innerHeight;
+    (function tickFit() {
+      if (innerWidth !== lw || innerHeight !== lh) { lw = innerWidth; lh = innerHeight; fit(); }
+      requestAnimationFrame(tickFit);
+    })();
 
     const root = el('div'); root.id = 'mtouch';
     const joy = el('div'); joy.id = 'mjoy';
@@ -128,8 +151,9 @@ html.mobile.corner-open #corner{display:flex}
 
     document.body.appendChild(root);
 
-    /* ---------------- 摇杆 ---------------- */
-    const R = 44;
+    /* ---------------- 摇杆 ----------------
+       摇杆半径跟着 --ms 缩放走：每次按下时实测，别用写死的 44 */
+    let R = 44;
     let joyId = null, jcx = 0, jcy = 0;
     const setAxis = (x, y) => {
       if (!x && !y) { if (F.Input) F.Input.axis = null; return; }
@@ -138,6 +162,7 @@ html.mobile.corner-open #corner{display:flex}
     const joyDown = e => {
       if (joyId !== null) return;
       joyId = e.pointerId;
+      R = Math.max(20, joy.clientWidth / 2 - knob.clientWidth / 2);
       const b = joy.getBoundingClientRect();
       jcx = b.left + b.width / 2; jcy = b.top + b.height / 2;
       joy.setPointerCapture && joy.setPointerCapture(e.pointerId);
