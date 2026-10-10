@@ -232,6 +232,9 @@
 
   const N = (F.Nodes = {
     list: [], meshes: {}, grid: null, cell: 10, gw: 0, seed: 20250101,
+    /* 资源稀疏度与模型尺寸（可调）：density=0.5 → 采集资源密度减半；modelScale=2 → 资源点模型放大 2 倍。
+       两个都是纯数据口径：碰撞半径 def.r*n.s 会跟着模型一起放大，大树的树干也更大，不会被穿过 */
+    density: 0.5, modelScale: 2,
 
     init(scene) {
       N.scene = scene;
@@ -277,8 +280,10 @@
       };
 
       const madeTypes = {};
-      for (const [type, count, test] of plans) {
+      for (const [type, count0, test] of plans) {
         let made = 0, tries = 0;
+        /* 密度按 N.density 缩放（0.5 = 减半），稀有资源至少留 1 个，免得整类消失导致后续流程缺矿 */
+        const count = Math.max(1, Math.round(count0 * (N.density == null ? 1 : N.density)));
         /* 藤蔓挂在已有树干上，避免悬空 */
         if (type === 'vine') {
           const hosts = [].concat(madeTypes.oak || [], madeTypes.pine || [], madeTypes.birch || []);
@@ -286,7 +291,7 @@
             const host = hosts[(rnd() * hosts.length) | 0];
             const x = host.x + (rnd() - 0.5) * 1.6, z = host.z + (rnd() - 0.5) * 1.6;
             const def = NODE_DEFS.vine;
-            const s = lerp(def.sc[0], def.sc[1], rnd());
+            const s = lerp(def.sc[0], def.sc[1], rnd()) * (N.modelScale || 1);
             const node = {
               type, def, x, z, y: host.y + (host.type === 'pine' ? 4.2 : 4.9) * host.s, ry: rnd() * 6.283, s,
               alive: true, respawn: 0, grow: 1, hits: def.hits, idx: 0, tint: 0, host,
@@ -315,7 +320,7 @@
           if (h < 0.55) continue;
           mark(x, z);
           const def = NODE_DEFS[type];
-          const s = lerp(def.sc[0], def.sc[1], rnd());
+          const s = lerp(def.sc[0], def.sc[1], rnd()) * (N.modelScale || 1);
           const node = {
             type, def, x, z, y: h, ry: rnd() * 6.283, s,
             alive: true, respawn: 0, grow: 1, hits: def.hits, idx: 0,

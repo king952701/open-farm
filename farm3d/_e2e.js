@@ -340,9 +340,9 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
     };
   });
   console.log('   植被层 =', JSON.stringify(flora));
-  ok('白花簇撒布成片 + 浆果丛转正为采集节点（全图 2000+ 株、真实采集出浆果）',
+  ok('白花簇撒布成片 + 浆果丛转正为采集节点（全图 1000+ 株、真实采集出浆果）',
     flora.layers === 2 && flora.counts[0] > 50 && Math.abs(flora.wind - flora.grassStr) < 0.5 &&
-    flora.bbCount > 2000 && flora.bb.exists && flora.bb.berry >= 2);
+    flora.bbCount > 1000 && flora.bb.exists && flora.bb.berry >= 2);   /* 密度减半后浆果丛 1400 株 */
 
   /* 5.56 空格跳跃回归：普通按键 / 输入法 Process / 脏键位 / 体力不足提示 / 焦点残留 */
   const jp = [];
@@ -2059,6 +2059,27 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
     van.start.alive === false && van.start.van === 0 && van.start.parts > 0 &&
     van.midVan > 0 && van.midVan < 1 && van.mid.s > 0.001 && van.mid.s < van.full &&
     vanEnd.van === 1 && vanEnd.endScale < 0.001);
+
+  /* 14. 采集资源密度减半 + 模型放大 2 倍 */
+  const dens = await page.evaluate(() => {
+    const F = window.FARM, N = F.Nodes;
+    const byType = {};
+    for (const n of N.list) byType[n.type] = (byType[n.type] || 0) + 1;
+    /* 模型尺寸：抽样核对每个节点的缩放是否落在 def.sc × 2 的区间里 */
+    const sample = ['oak', 'rock', 'herb', 'berrybush', 'gold'].map(t => {
+      const n = N.list.find(x => x.type === t);
+      return n ? { t, s: +n.s.toFixed(2), lo: +(n.def.sc[0] * N.modelScale).toFixed(2), hi: +(n.def.sc[1] * N.modelScale).toFixed(2) } : null;
+    }).filter(Boolean);
+    return {
+      total: N.list.length, bb: byType.berrybush || 0, oak: byType.oak || 0,
+      density: N.density, modelScale: N.modelScale, sample,
+      inRange: sample.every(x => x.s >= x.lo - 0.01 && x.s <= x.hi + 0.01),
+    };
+  });
+  console.log('   资源密度 =', JSON.stringify(dens));
+  ok('采集资源密度减半（总量约 2300、浆果丛 1400）· 模型放大 2 倍（缩放落在 def.sc×2 区间）',
+    dens.density === 0.5 && dens.modelScale === 2 && dens.inRange &&
+    dens.total > 1600 && dens.total < 2800 && dens.bb > 1000 && dens.bb < 1600 && dens.oak > 60 && dens.oak < 120);
 
   console.log(errs.length ? '\n运行时错误:\n' + errs.slice(0, 5).join('\n') : '\n无 JS 错误');
   await browser.close();
