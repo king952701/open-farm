@@ -18,16 +18,23 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#cfe6f2}
 body{
   font:14px/1.6 "PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC",system-ui,sans-serif;
-  color:var(--ink); user-select:none; -webkit-user-select:none;
+  color:var(--ink); user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none;
 }
-#cv{position:absolute;inset:0;display:block;width:100%;height:100%}
+/* 例外：输入框 / 文本域必须能正常选字（聊天、改名等），不能被上面的 none 连坐 */
+input,textarea,select{user-select:text;-webkit-user-select:text;-moz-user-select:text}
+/* 图片与链接一律不可拖、长按不弹系统菜单（图片多由聊天的截图 / 贴图插入） */
+img,a{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}
+#cv{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
 /* 进入世界后自动藏起鼠标指针（Esc 取回）；只作用在画布上 ——
    按钮 / 面板本身是 cursor:pointer，鼠标移过去会自然显回箭头 */
 html.cur-none #cv{cursor:none}
 /* 安全区：刘海屏 / 灵动岛 / Home 条 / 挖孔屏 —— absolute 子元素随 padding 整体内缩 */
 #ui,#panel{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-#ui{position:absolute;inset:0;pointer-events:none;z-index:5}
+#ui{position:absolute;inset:0;pointer-events:none;z-index:5;touch-action:none}
 #ui button,#ui input,#ui .card,#ui .item,#ui .slot,#ui .seed,#ui .panel,#ui .mmwrap{pointer-events:auto}
+/* 触摸端：画布与 HUD 不交给浏览器做默认手势（ scroll 的容器例外：
+   手机上 #corner 按钮列是可滚动的，得放行 pan-y；面板 .pbody 在 #panel 里不受影响） */
+html.mobile #corner{touch-action:pan-y}
 
 /* ---------- 顶部左：时钟 / 状态 ---------- */
 #topbar{position:absolute;left:14px;top:14px;min-width:236px;
@@ -556,6 +563,8 @@ html.cur-none #cv{cursor:none}
 <script src="js/ability.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/ui2.js"></script>
+<!-- 交互隔离守卫：拦截右键菜单 / 鼠标手势 / 拖拽选中 / 中键 / 键盘滚页，须早于游戏逻辑 -->
+<script src="js/interact-guard.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

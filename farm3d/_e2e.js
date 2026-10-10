@@ -1790,6 +1790,8 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
 
   const sellFace = await page.evaluate(() => {
     const F = window.FARM;
+    /* ponytail: 冶炼/制作是随时间推进的，铁锭数量会浮动 —— 先钉死成 6，断言才有意义 */
+    F.Game.inv.iron_ingot = 6;
     F.UI2.panelBlackMarket('face');
     const c0 = F.Game.coins;
     const rows = document.querySelectorAll('#panel .friends')[2].querySelectorAll('.frow');
@@ -1910,6 +1912,75 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   console.log('   跟随 =', JSON.stringify({ on: +dOn.toFixed(2), off: +dOff.toFixed(2) }));
   ok('镜头自动跟随：横移 3 秒相机跟转（>1.2 rad）；关掉后不动（<0.1 rad）',
     Math.abs(dOn) > 1.2 && Math.abs(dOff) < 0.1);
+
+  /* 10. 交互隔离：右键菜单 / 鼠标手势入口 / 拖拽选中 / 中键 / 双击 / 键盘滚页 全被接管，
+          且输入框里的原生行为不被误伤 */
+  const guard = await page.evaluate(() => {
+    document.getElementById('guard-hint') && document.getElementById('guard-hint').remove();
+    const cv = document.getElementById('cv');
+    const fire = (type, Ctor, opts) => {
+      const e = new Ctor(type, Object.assign({ bubbles: true, cancelable: true, view: window }, opts));
+      cv.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    const keyOn = (k, target) => {
+      const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true });
+      (target || dispatchEvent) && (target ? target.dispatchEvent(e) : dispatchEvent(e));
+      return e.defaultPrevented;
+    };
+    const inp = document.createElement('input');
+    document.body.appendChild(inp);
+    const res = {
+      ready: !!window.__GUARD_READY,
+      ctxMenu: fire('contextmenu', MouseEvent, { button: 2 }),
+      rmbDown: fire('mousedown', MouseEvent, { button: 2 }),
+      mmbDown: fire('mousedown', MouseEvent, { button: 1 }),
+      lmbDown: fire('mousedown', MouseEvent, { button: 0 }),   /* 左键交给游戏，不拦 */
+      select: fire('selectstart', Event, {}),
+      drag: fire('dragstart', Event, {}),
+      dbl: fire('dblclick', MouseEvent, {}),
+      space: keyOn(' ', null),
+      arrow: keyOn('ArrowDown', null),
+      page: keyOn('PageDown', null),
+      keyInInput: keyOn(' ', inp),          /* 输入框里必须放行 */
+      selInInput: (() => { const e = new Event('selectstart', { bubbles: true, cancelable: true }); inp.dispatchEvent(e); return e.defaultPrevented; })(),
+      imgNoDrag: (() => {
+        const im = document.createElement('img'); document.body.appendChild(im);
+        window.__GUARD_HARDEN();                       /* 同步补一次，不依赖 MutationObserver 的防抖 */
+        const v = im.getAttribute('draggable'); im.remove(); return v;
+      })(),
+      _tail: fire('mouseup', MouseEvent, { button: 2 }),   /* 复位右键状态：别让看门狗把测试误判成「事件被吞」 */
+      noScrollBar: document.documentElement.scrollHeight <= window.innerHeight + 1 &&
+        getComputedStyle(document.body).overflow === 'hidden',
+      cvTouch: getComputedStyle(cv).touchAction,
+    };
+    inp.remove();
+    return res;
+  });
+  console.log('   隔离 =', JSON.stringify(guard));
+  ok('交互隔离：右键菜单/右键拖拽/中键/双击/拖拽选中被拦截', guard.ready && guard.ctxMenu && guard.rmbDown &&
+    guard.mmbDown && guard.dbl && guard.select && guard.drag);
+  ok('交互隔离：左键不拦 · 输入框原生行为保留 · 键盘滚页被拦', !guard.lmbDown && !guard.keyInInput &&
+    !guard.selInInput && guard.space && guard.arrow && guard.page);
+  ok('布局隔离：无滚动条 + 画布 touch-action:none · 图片不可拖拽',
+    guard.noScrollBar && guard.cvTouch === 'none' && guard.imgNoDrag === 'false');
+
+  /* 11. 手势扩展兜底：模拟「右键按下后事件被浏览器层吞掉」（无 mousemove 也无 mouseup），
+          应弹出可关闭的友好提示 */
+  await page.evaluate(() => {
+    const old = document.getElementById('guard-hint'); if (old) old.remove();
+    document.getElementById('cv').dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window, button: 2 }));
+  });
+  await page.waitForTimeout(3000);
+  const hint = await page.evaluate(() => {
+    const d = document.getElementById('guard-hint');
+    return d ? d.textContent : '';
+  });
+  await page.screenshot({ path: path.join(__dirname, 'production', 'qa', 'evidence', 'pc-gesture-hint.png') });
+  ok('手势扩展兜底：右键拖动被吞时弹出「建议关闭鼠标手势」的提示', /鼠标手势扩展/.test(hint));
+  console.log('   兜底提示 =', JSON.stringify(hint.slice(0, 40)));
+  await page.evaluate(() => { const d = document.getElementById('guard-hint'); if (d) d.remove(); });
 
   console.log(errs.length ? '\n运行时错误:\n' + errs.slice(0, 5).join('\n') : '\n无 JS 错误');
   await browser.close();
