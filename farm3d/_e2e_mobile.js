@@ -130,6 +130,31 @@ const ASSETS = path.join(__dirname, '..', 'farm3d-android', 'app', 'src', 'main'
   ok('「菜单」展开功能按钮列 · 面板在手机宽度内打开（背包）',
     menuOpen === 'flex' && /flex/.test(panel.shown) && /背包/.test(panel.head) && panel.width > 0 && panel.width <= panel.vw);
 
+  /* 5. 致谢页在手机上也能打开（点「菜单」→ 关于） */
+  await page.evaluate(() => {
+    const F = window.FARM;
+    F.UI.closePanel();
+    const b = document.getElementById('btn-about');
+    if (b) b.click();
+  });
+  await page.waitForTimeout(400);
+  const aboutM = await page.evaluate(() => {
+    const box = document.querySelector('#panel .panel');
+    return {
+      shown: document.getElementById('panel').style.display,
+      on: (document.querySelector('#panel .ranktabs .rt.on') || {}).textContent || '',
+      three: box ? /Three\.js/.test(box.textContent) : false,
+      w: box ? box.clientWidth : 0, vw: innerWidth,
+      scrollable: box ? box.scrollHeight > box.clientHeight : false,
+    };
+  });
+  console.log('   致谢页 =', JSON.stringify(aboutM));
+  ok('手机上「关于 · 致谢」可打开且内容在屏幕内（可滚动）',
+    /flex/.test(aboutM.shown) && aboutM.on === '关于 · 致谢' && aboutM.three &&
+    aboutM.w > 0 && aboutM.w <= aboutM.vw);
+  await page.screenshot({ path: path.join(__dirname, 'production', 'qa', 'evidence', 'mobile-about.png') });
+  await page.evaluate(() => window.FARM.UI.closePanel());
+
   await page.screenshot({ path: path.join(__dirname, 'production', 'qa', 'evidence', 'mobile-touch.png') });
   ok('无 JS 错误', errs.length === 0);
   if (errs.length) console.log('   错误：', errs.slice(0, 5).join(' | '));

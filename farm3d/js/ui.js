@@ -117,7 +117,9 @@
     F.$('#btn-build').onclick = () => U.openPanel('build');
     F.$('#btn-inv').onclick = () => U.togglePanel('inv');
     F.$('#btn-help').onclick = () => { U.setTab = 'manual'; U.togglePanel('settings'); };
+    F.$('#btn-about').onclick = () => { U.setTab = 'about'; U.togglePanel('settings'); };
     F.$('#btn-set').onclick = () => U.togglePanel('settings');
+    /* 不给「关于」绑快捷键：? 与 / 已经是手册的入口，再绑会跟上面的 keydown 双重 toggle */
     const bind = (id, fn) => { const e = F.$(id); if (e) e.onclick = fn; };
     bind('#btn-skill', () => U.togglePanel('skill'));
   bind('#btn-chat', () => F.UI2 && F.UI2.toggleChat());
@@ -944,21 +946,64 @@
         <div>资源采完后会自动刷新；鱼群与作物也会持续恢复</div>
       </div>`;
   }
+  /* ---------------- 关于 · 致谢 ----------------
+     ponytail: 内容全部写死在这里 —— 第三方清单是「事实」不是「数据」，没必要进存档 */
+  function aboutHTML() {
+    return `
+      <div class="pcat">牧野田园 Open Farm</div>
+      <div class="keys">
+        <div>版本 1.0 · 一款跑在浏览器里的 3D 开放式休闲生存建造游戏：开荒种地、伐木挖矿、钓鱼畜牧、建屋造院，白天干活，夜里防野兽</div>
+        <div>无后端、无联网、无广告、无内购；安卓 APK 与网页版共用同一套源码，改一次两处生效</div>
+      </div>
+      <div class="pcat">致谢 · 第三方</div>
+      <div class="keys">
+        <div><b>Three.js</b>（MIT License）— 渲染引擎，随包附在 vendor/three.min.js · threejs.org</div>
+        <div><b>Web Audio API</b> — 风声、雨声、雷鸣、脚步、采集声全部实时合成，仓库里没有一个音频文件</div>
+        <div><b>Canvas 2D</b> — 物品图标与部分贴图由代码绘制，没有引用任何第三方图片</div>
+        <div><b>系统字体</b>（苹方 / 微软雅黑 / 思源黑体 等）— 未打包任何第三方字体</div>
+        <div><b>Android WebViewAssetLoader</b>（AndroidX，Apache-2.0）— 让 APK 里的网页也能可靠存档</div>
+      </div>
+      <div class="pcat">致谢 · 人</div>
+      <div class="keys">
+        <div>开发与维护：king952701</div>
+        <div>感谢每一位试玩、吐槽、报 bug 的玩家 —— 是你们把这块荒地一点点种成了田园</div>
+        <div>感谢开源社区：无数人无偿写下的代码、文档与回答，是这个游戏真正的地基</div>
+      </div>
+      <div class="pcat">许可</div>
+      <div class="keys">
+        <div>本项目以 <b>MIT License</b> 开源：可自由使用、修改、再发布，保留版权声明即可</div>
+        <div>源码与更新：github.com/king952701/open-farm</div>
+        <div>安卓安装包：github.com/king952701/open-farm/releases/latest</div>
+      </div>
+      <div class="pcat">想让它更好？</div>
+      <div class="keys">
+        <div>发现 bug 或有新想法，欢迎到仓库提 Issue —— 每一条我都会看</div>
+        <div>本作不含任何第三方品牌、角色与素材；如你认为某处仍有不妥，也请直接告诉我，我会第一时间处理</div>
+      </div>`;
+  }
   /* ponytail: openPanel('help') 保留为兼容入口，实际就是打开设置面板的手册标签页 */
   function panelHelp() { U.setTab = 'manual'; return panelSettings(); }
 
   function panelSettings() {
     const G = F.Game;
     const tab = U.setTab || 'display';
-    const { body } = panelShell('设置', '画面 / 手册 / 快捷键');
+    const { body } = panelShell('设置', '画面 / 手册 / 快捷键 / 关于');
     U.setPanel('settings');
     const tabs = F.el('div', 'ranktabs');
-    for (const [id, nm] of [['display', '画面与存档'], ['manual', '手册'], ['keys', '快捷键']]) {
+    for (const [id, nm] of [['display', '画面与存档'], ['manual', '手册'], ['keys', '快捷键'], ['about', '关于 · 致谢']]) {
       const t = F.el('div', 'rt' + (tab === id ? ' on' : ''), nm);
       t.onclick = () => { U.setTab = id; panelSettings(); };
       tabs.appendChild(t);
     }
     body.appendChild(tabs);
+
+    /* ---------------- 关于 · 致谢 ---------------- */
+    if (tab === 'about') {
+      const w = F.el('div');
+      w.innerHTML = aboutHTML();
+      body.appendChild(w);
+      return;
+    }
 
     /* ---------------- 手册（原左下角帮助卡与「操作指南」面板收纳于此） ---------------- */
     if (tab === 'manual') {

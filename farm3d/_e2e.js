@@ -1182,7 +1182,31 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   await page.waitForTimeout(150);
   console.log('   设置面板 =', JSON.stringify(st));
   ok('帮助卡收纳进 设置→手册（左下角提示卡移除，操作指南内容保留）',
-    st.manual.rt.length === 3 && st.manual.on === '手册' && st.manual.wasd && st.manual.hintGone && st.nInputs >= 25);
+    st.manual.rt.length === 4 && st.manual.on === '手册' && st.manual.wasd && st.manual.hintGone && st.nInputs >= 25);
+
+  /* 5.17c 关于 · 致谢：第三方清单齐全（公开仓库，第三方署名不能漏） */
+  const about = await page.evaluate(() => {
+    const F = window.FARM;
+    F.UI.closePanel();                                     /* 上一段测试留着设置面板开着，先关掉再点，否则是 toggle 关面板 */
+    const btn = document.getElementById('btn-about');
+    if (btn) btn.click();                                  /* 右下角入口按钮 */
+    const box = document.querySelector('#panel .panel');
+    const t = box ? box.textContent : '';
+    const on = (document.querySelector('#panel .ranktabs .rt.on') || {}).textContent || '';
+    return {
+      on, three: /Three\.js/.test(t) && /MIT/.test(t),
+      audio: /Web Audio/.test(t), canvas: /Canvas 2D/.test(t),
+      font: /系统字体/.test(t), android: /WebViewAssetLoader/.test(t),
+      license: /MIT License/.test(t), repo: /github\.com\/king952701\/open-farm/.test(t),
+      nCats: document.querySelectorAll('#panel .pcat').length,
+    };
+  });
+  console.log('   关于致谢 =', JSON.stringify(about));
+  ok('「关于 · 致谢」页：Three.js/Web Audio/Canvas/字体/AndroidX 与 MIT 许可、仓库地址齐全',
+    about.on === '关于 · 致谢' && about.three && about.audio && about.canvas &&
+    about.font && about.android && about.license && about.repo && about.nCats >= 5);
+  /* 还原成下一段「改键」测试要的状态：设置面板开在快捷键页 */
+  await page.evaluate(() => { const F = window.FARM; F.UI.setTab = 'keys'; F.UI.openPanel('settings'); });
 
   /* 改键：把投掷纳球改成 ↑（Z 已经给了「切换种子」，键表几乎占满，用方向键保证不冲突） */
   await page.focus('#panel .keyrow input[data-k="throwball"]');
