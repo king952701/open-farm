@@ -486,6 +486,8 @@
     const bar = F.$('#lbar i'), tip = F.$('#ltip');
     if (taskI >= TASKS.length) {
       F.$('#loading').style.display = 'none';
+      /* 进入世界：藏起鼠标指针，Esc 取回（只在画布上生效，UI 悬停照旧显示箭头） */
+      if (F.UI && F.UI.setCursor) F.UI.setCursor(true);
       start();
       return;
     }

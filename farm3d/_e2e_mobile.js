@@ -157,14 +157,17 @@ const ASSETS = path.join(__dirname, '..', 'farm3d-android', 'app', 'src', 'main'
 
   /* 6. UI 全机型自适应：小屏收缩、平板放大，摇杆直径跟 --ms 走，测完还原视口 */
   const BASE = { width: 802, height: 293 };
+  /* 软渲染下帧率极低，改用「等条件成立」而不是等固定毫秒 */
   await page.setViewportSize({ width: 640, height: 320 });
-  await page.waitForTimeout(350);
+  await page.waitForFunction(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ms')) < 1,
+    { timeout: 15000 }).catch(() => { });
   const small = await page.evaluate(() => ({
     ms: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ms')),
     joy: document.getElementById('mjoy').clientWidth,
   }));
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.waitForTimeout(350);
+  await page.waitForFunction(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ms')) > 1,
+    { timeout: 15000 }).catch(() => { });
   const big = await page.evaluate(() => ({
     ms: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ms')),
     joy: document.getElementById('mjoy').clientWidth,

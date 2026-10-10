@@ -1860,6 +1860,23 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   ok('刷新页面后读档恢复（含坐骑）', loaded.builds === saved.builds.length && loaded.tilled >= 1 && loaded.mounts >= 1);
   console.log('   读档状态 =', JSON.stringify(loaded));
 
+  /* 7. 鼠标指针：进入世界自动隐藏，按 Esc 取回（UI 悬停仍显示箭头） */
+  const cur1 = await page.evaluate(() => ({
+    cv: getComputedStyle(document.getElementById('cv')).cursor,
+    cls: document.documentElement.classList.contains('cur-none'),
+  }));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(250);
+  const cur2 = await page.evaluate(() => ({
+    cv: getComputedStyle(document.getElementById('cv')).cursor,
+    cls: document.documentElement.classList.contains('cur-none'),
+    panel: (document.querySelector('#panel .phead h3') || {}).textContent || '',
+  }));
+  console.log('   指针 =', JSON.stringify({ before: cur1, afterEsc: cur2 }));
+  ok('进入游戏画布自动隐藏鼠标指针 · 按 Esc 显回',
+    cur1.cv === 'none' && cur1.cls && cur2.cv !== 'none' && !cur2.cls);
+  await page.evaluate(() => window.FARM.UI.closePanel());
+
   console.log(errs.length ? '\n运行时错误:\n' + errs.slice(0, 5).join('\n') : '\n无 JS 错误');
   await browser.close();
   process.exit(fails ? 1 : 0);

@@ -35,6 +35,8 @@
         Input.mx = e.clientX; Input.my = e.clientY;
         Input.clickX = e.clientX; Input.clickY = e.clientY;
         Input.dragging = true;
+        /* 在画布上开始操作 = 回到游戏中，指针重新藏起来 */
+        if (F.UI && F.UI.setCursor) F.UI.setCursor(true);
         if (e.button === 2) Input.rmb = true;                    /* 技能槽 3 */
       });
       addEventListener('mousemove', e => {
