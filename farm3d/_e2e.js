@@ -509,7 +509,8 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   console.log('   新手村 guards =', JSON.stringify(await page.evaluate(() => window.FARM.Combat.mobs.filter(m => m.def.guard).length)));
   console.log('   守卫 =', JSON.stringify(cdGuard), '低体力 =', JSON.stringify(lowE.energy), JSON.stringify(lowE.toast));
   ok('三条释放途径都生效：[Q] / 鼠标右键 / HUD 按钮（触摸可用）',
-    qres.hits === 1 && qres.hp < 99999 && rres.hits >= 1 && tres.hits === 1 && tres.energy === 92);
+    /* ponytail: 体力在测试步骤之间会被真实帧自然回复一点点，比对用容差，别卡死在精确的 92.0000 */
+    qres.hits === 1 && qres.hp < 99999 && rres.hits >= 1 && tres.hits === 1 && Math.abs(tres.energy - 92) < 0.05);
   ok('冷却与资源：CD 中重复按不扣体力不结算；体力不足不放并提示；等级不足不放',
     cdGuard.sameEnergy && cdGuard.sameHits && lowE.released === false && lowE.energy === 2 &&
     /体力不足/.test(lowE.toast) && locked);
@@ -2014,6 +2015,50 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(__dirname, 'production', 'qa', 'evidence', 'hill-rocks.png') });
   await page.evaluate(() => { const P = window.FARM.Player; P.pos.set(2, 0, 104); });
+
+  /* 13. 采集资源头顶蓝色名称牌（常驻）+ 采集耗尽的消失动画 */
+  const lbl = await page.evaluate(() => {
+    const F = window.FARM, L = F.NodeLabel;
+    const n = F.Nodes.list.find(x => x.alive && x.def.tool !== 'axe') || F.Nodes.list[0];
+    F.Player.pos.set(n.x, F.T.hAt(n.x, n.z), n.z);
+    F.Nodes.updateLabels(1, n.x, n.z);
+    const vis = L.pool.filter(s => s.visible);
+    return {
+      pool: L.pool.length, visible: vis.length,
+      keys: vis.slice(0, 3).map(s => s.userData.key),
+      blue: vis.length ? vis[0].material.map !== null : false,
+      above: vis.length ? +(vis[0].position.y - n.by).toFixed(2) : -1,
+    };
+  });
+  console.log('   名称牌 =', JSON.stringify(lbl));
+  ok('采集资源头顶常驻名称牌：附近节点挂出牌子（有贴图、挂在模型顶上）',
+    lbl.pool > 0 && lbl.visible > 0 && lbl.blue && lbl.above > 0.5 && lbl.keys[0] && lbl.keys[0].length > 0);
+
+  const van = await page.evaluate(() => {
+    const F = window.FARM;
+    const n = F.Nodes.list.find(x => x.alive && x.def.tool === 'pick');
+    const size = () => {                        /* 读该实例当前的缩放（动画进度） */
+      const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+      F.Nodes.meshes[n.type].getMatrixAt(n.idx, m); m.decompose(p, q, s);
+      return { s: +s.x.toFixed(3), y: +p.y.toFixed(2) };
+    };
+    const full = size().s;
+    const p0 = F.FX.parts.length;
+    F.Nodes.harvest(n);
+    const start = { van: n.van, alive: n.alive, parts: F.FX.parts.length - p0 };
+    F.Nodes.update(0.12);                       /* 动画中途：实例应处于「正在缩小」 */
+    const mid = size(), midVan = +n.van.toFixed(2);   /* 此刻就取，别放到 return 里（那时循环已跑完） */
+    /* ponytail: 软渲染帧率极低，直接喂固定步长把动画推完，不赌墙钟时间 */
+    for (let i = 0; i < 8; i++) F.Nodes.update(0.1);
+    const end = size();
+    return { full: +full.toFixed(3), start, midVan, mid, endVan: n.van, end };
+  });
+  const vanEnd = { van: van.endVan, endScale: van.end.s, endY: van.end.y };
+  console.log('   消失动画 =', JSON.stringify(van), JSON.stringify(vanEnd));
+  ok('采集耗尽：先播收缩消失动画（中途仍在缩小）再隐藏实例，并迸发碎屑',
+    van.start.alive === false && van.start.van === 0 && van.start.parts > 0 &&
+    van.midVan > 0 && van.midVan < 1 && van.mid.s > 0.001 && van.mid.s < van.full &&
+    vanEnd.van === 1 && vanEnd.endScale < 0.001);
 
   console.log(errs.length ? '\n运行时错误:\n' + errs.slice(0, 5).join('\n') : '\n无 JS 错误');
   await browser.close();

@@ -343,6 +343,7 @@
       F.Animals.update(dt, F.Player);
       F.Fish.update(dt);
       F.Nodes.update(dt);
+      F.Nodes.updateLabels(dt, F.Player.pos.x, F.Player.pos.z);   /* 采集资源头顶蓝色名称牌 */
       F.Farm.update(dt, F.Weather ? F.Weather.m('growth', 1) : 1);
       farmT -= dt;
       if (farmT <= 0) { farmT = 0.5; F.Farm.visualTick(); }

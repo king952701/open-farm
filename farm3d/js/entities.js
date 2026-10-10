@@ -193,6 +193,43 @@
   /* 使用岩石模型的节点类型（含全部矿脉） */
   F.ORE_TYPES = { rock: 1, iron: 1, pile: 1, copper: 1, tin: 1, alum: 1, silver: 1, gold: 1, crystal: 1, rainbow: 1 };
 
+  /* ==========================================================================
+   * 采集资源头顶名称牌（蓝色常驻）
+   * ponytail: 全图四千多个节点，不可能人人都挂一块牌子 —— 只给「玩家附近」的节点发牌，
+   *   用固定大小的对象池循环复用（桌面 48 / 手机 30），同名资源共用一张文字贴图。
+   *   牌子是 Sprite：自动朝向相机、随距离缩小、被山体建筑挡住时会被深度测试遮掉。
+   *   文字用 Canvas2D 现画，不引入任何外部美术资源（与全项目「零外部资源」一致）。
+   * ========================================================================== */
+  const LBL = (F.NodeLabel = { pool: [], keys: new Map(), top: {}, cool: 0, R: 26, cap: 48, ready: false });
+
+  /* 名称 → 文字贴图（同名共用一张） */
+  function nameTex(name) {
+    let o = LBL.keys.get(name);
+    if (o) return o;
+    const FS = 44, PAD = 22, H = 68;
+    const font = '700 ' + FS + 'px "PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif';
+    const m = document.createElement('canvas').getContext('2d');
+    m.font = font;
+    const w = Math.max(110, Math.ceil(m.measureText(name).width) + PAD * 2);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = H;
+    const g = c.getContext('2d');
+    g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = 'rgba(8,26,48,0.66)';                    /* 深蓝胶囊底衬：草地 / 雪地 / 矿洞里都看得清 */
+    g.beginPath();
+    if (g.roundRect) g.roundRect(2, 2, w - 4, H - 4, (H - 4) / 2);
+    else g.rect(2, 2, w - 4, H - 4);
+    g.fill();
+    g.lineWidth = 3; g.strokeStyle = 'rgba(150,215,255,0.60)'; g.stroke();
+    g.fillStyle = '#8fd6ff';                               /* 蓝色资源名 */
+    g.fillText(name, w / 2, H / 2 + 2);
+    const tex = new THREE.CanvasTexture(c);
+    tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+    o = { tex, aspect: w / H };
+    LBL.keys.set(name, o);
+    return o;
+  }
+
   const N = (F.Nodes = {
     list: [], meshes: {}, grid: null, cell: 10, gw: 0, seed: 20250101,
 
@@ -253,6 +290,7 @@
             const node = {
               type, def, x, z, y: host.y + (host.type === 'pine' ? 4.2 : 4.9) * host.s, ry: rnd() * 6.283, s,
               alive: true, respawn: 0, grow: 1, hits: def.hits, idx: 0, tint: 0, host,
+              van: 1,                       /* 消失动画进度 0→1（1 = 没在播） */
             };
             N.list.push(node);
             (madeTypes.vine || (madeTypes.vine = [])).push(node);
@@ -282,6 +320,7 @@
             type, def, x, z, y: h, ry: rnd() * 6.283, s,
             alive: true, respawn: 0, grow: 1, hits: def.hits, idx: 0,
             tint: def.tint ? FLOWER_COLORS[(rnd() * FLOWER_COLORS.length) | 0] : 0,
+            van: 1,                       /* 消失动画进度 0→1（1 = 没在播） */
           };
           N.list.push(node);
           (madeTypes[type] || (madeTypes[type] = [])).push(node);
@@ -375,8 +414,16 @@
       node.hits = node.def.hits;
       node.grow = 0;
       const mesh = N.meshes[node.type];
-      F.hideInst(mesh, node.idx);
-      mesh.instanceMatrix.needsUpdate = true;
+      /* 采集次数耗尽 → 播消失动画（先鼓一下再缩走 + 尘土），播完才真正隐藏实例，
+         不再是「啪」地瞬移消失；砍树另有 Nodes.fall 的倒下动画，别两套一起播 */
+      if (node.def.tool === 'axe') {
+        node.van = 1;
+        F.hideInst(mesh, node.idx);
+        mesh.instanceMatrix.needsUpdate = true;
+      } else {
+        node.van = 0;
+        N.vanishFx(node);
+      }
       /* ponytail: 返回拷贝而不是 def.yield 本身——概率产出要写进结果，不能污染节点定义 */
       const out = Object.assign({}, node.def.yield);
       const bo = node.def.bonus;
@@ -401,20 +448,91 @@
             F.setInst(mesh, n.idx, n.x, n.by, n.z, n.ry, s, n.tint ? new THREE.Color().setHex(n.tint) : null);
             dirty = true;
           }
-        } else if (n.respawn > 0) {
-          n.respawn -= dt;
-          if (n.respawn <= 0) {
-            n.alive = true; n.grow = 0.001;
-            F.setInst(N.meshes[n.type], n.idx, n.x, n.by, n.z, n.ry, 0.001, n.tint ? new THREE.Color().setHex(n.tint) : null);
+        } else {
+          /* 采集耗尽后的消失动画：先微微鼓一下，再边缩边沉边转一点点，播完隐藏实例。
+             与生长（grow）用的是同一套 instance 缩放，但走独立的 van 字段，
+             不会和 respawn 重生逻辑打架 —— 重生时 van 复位成 1 */
+          if (n.van < 1) {
+            n.van = Math.min(1, n.van + dt / 0.5);
+            const k = 1 - n.van;
+            const s = Math.max(0.0001, n.s * k * (1 + 0.28 * Math.sin(Math.PI * n.van)));
+            const mesh = N.meshes[n.type];
+            F.setInst(mesh, n.idx, n.x, n.by - n.van * 0.45, n.z, n.ry + n.van * 1.1, s);
             dirty = true;
+            if (n.van >= 1) F.hideInst(mesh, n.idx);
+          }
+          if (n.respawn > 0) {
+            n.respawn -= dt;
+            if (n.respawn <= 0) {
+              n.alive = true; n.grow = 0.001; n.van = 1;
+              F.setInst(N.meshes[n.type], n.idx, n.x, n.by, n.z, n.ry, 0.001, n.tint ? new THREE.Color().setHex(n.tint) : null);
+              dirty = true;
+            }
           }
         }
       }
       if (dirty) for (const k in N.meshes) N.meshes[k].instanceMatrix.needsUpdate = true;
     },
 
+    /* 采集耗尽的一瞬间：碎屑迸发（按工具分色）+ 一圈尘土 */
+    vanishFx(n) {
+      if (!F.FX) return;
+      const c = n.def.tool === 'pick' ? 0xa8a094 : (n.def.tool === 'sickle' ? 0x8fb255 : 0x7fae4a);
+      F.FX.burst(n.x, n.by + 0.35, n.z, c, 10, 0.75);
+      F.FX.burst(n.x, n.by + 0.15, n.z, 0xcbb894, 8, 0.55);   /* 地面扬尘 */
+    },
+
+    /* 头顶名称牌刷新：节流 0.2 秒 —— 只有玩家挪动后才需要重排 */
+    updateLabels(dt, px, pz) {
+      if (!N.scene || !N.meshes || !(F.FX && F.FX.camera)) return;
+      if (!LBL.ready) {
+        LBL.ready = true;
+        LBL.cap = F.coarseDevice ? 30 : 48;
+        /* 每种模型的高度量一次：牌子挂模型顶上，而不是脚下 */
+        for (const k in N.meshes) {
+          try { LBL.top[k] = Math.max(0.5, F.measure(N.meshes[k].geometry).max.y); } catch (e) { LBL.top[k] = 1.2; }
+        }
+        const ph = nameTex('资源');
+        for (let i = 0; i < LBL.cap; i++) {
+          const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: ph.tex, transparent: true, depthWrite: false,
+            sizeAttenuation: false,      /* 恒定屏幕尺寸：近处的牌子不会糊脸放大 */
+            fog: false, opacity: 0,
+          }));
+          sp.visible = false; sp.renderOrder = 3;
+          N.scene.add(sp);
+          LBL.pool.push(sp);
+        }
+      }
+      LBL.cool -= dt;
+      if (LBL.cool > 0) return;
+      LBL.cool = 0.2;
+      const near = N.near(px, pz, LBL.R);
+      const cnt = Math.min(near.length, LBL.pool.length);
+      for (let i = 0; i < LBL.pool.length; i++) {
+        const sp = LBL.pool[i];
+        if (i >= cnt) { sp.visible = false; continue; }
+        const e = near[i], nd = e.n, d = Math.sqrt(e.d);
+        const name = nd.def.name;
+        if (sp.userData.key !== name) {
+          const t = nameTex(name);
+          sp.material.map = t.tex; sp.material.needsUpdate = true;
+          sp.userData.key = name;
+          /* sizeAttenuation:false 时 scale 是「屏高占比」：0.055 ≈ 5.5% 屏高 */
+          const h = 0.055 * (F.coarseDevice ? 1.3 : 1);
+          sp.scale.set(h * t.aspect, h, 1);
+        }
+        sp.position.set(nd.x, nd.by + (LBL.top[nd.type] || 1.2) * nd.s + 0.34, nd.z);
+        /* 远处淡出，26m 外不显示 —— 免得满屏都是牌子 */
+        const fade = 1 - Math.max(0, (d - LBL.R * 0.62) / (LBL.R * 0.38));
+        sp.material.opacity = fade;
+        sp.visible = fade > 0.02;
+      }
+    },
+
     /* 砍伐时的倒下动画 */
     fall(node, done) {
+      node.van = 1;                 /* 倒下动画接管，别再播收缩消失那套 */
       const mesh = N.meshes[node.type];
       const geo = mesh.geometry;
       const m = new THREE.Mesh(geo, F.MATS.std);
