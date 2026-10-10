@@ -1969,7 +1969,9 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
     document.getElementById('cv').dispatchEvent(
       new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window, button: 2 }));
   });
-  await page.waitForTimeout(3000);
+  /* ponytail: 软渲染主线程一卡，2.4s 的看门狗定时器可能晚点才响 —— 轮询等它，别赌固定 3 秒 */
+  await page.waitForFunction(() => document.getElementById('guard-hint'), { timeout: 8000 })
+    .catch(() => { });
   const hint = await page.evaluate(() => {
     const d = document.getElementById('guard-hint');
     return d ? d.textContent : '';
@@ -2080,6 +2082,29 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   ok('采集资源密度减半（总量约 2300、浆果丛 1400）· 模型放大 2 倍（缩放落在 def.sc×2 区间）',
     dens.density === 0.5 && dens.modelScale === 2 && dens.inRange &&
     dens.total > 1600 && dens.total < 2800 && dens.bb > 1000 && dens.bb < 1600 && dens.oak > 60 && dens.oak < 120);
+
+  /* 15. 科幻皮肤：深空玻璃面板 + 青色描边 + 标题栏能量条 + 全站亮色文字（守住换肤，别回退成旧浅色） */
+  const skin = await page.evaluate(() => {
+    const F = window.FARM;
+    F.UI.openPanel('inv');
+    const q = s => document.querySelector(s);
+    const cs = s => { const e = q(s); return e ? getComputedStyle(e) : null; };
+    const p = cs('#panel .panel'), h = cs('#panel .phead');
+    const r = {
+      accent: getComputedStyle(document.documentElement).getPropertyValue('--green').trim(),
+      ink: getComputedStyle(document.body).color,
+      panelGrad: p && p.backgroundImage !== 'none',
+      panelCyan: p && /90, 210, 255/.test(p.borderColor),
+      headGlow: h && /63, 224, 200/.test(h.boxShadow),
+      title: (q('#panel .phead h3') || {}).textContent || '',
+    };
+    F.UI.closePanel();
+    return r;
+  });
+  console.log('   科幻皮肤 =', JSON.stringify(skin));
+  ok('科幻皮肤：面板深空玻璃渐变 + 青色描边发光 + 标题栏青色能量条 + 全站亮色文字',
+    skin.accent === '#3fe0c8' && skin.panelGrad && skin.panelCyan && skin.headGlow &&
+    skin.title === '背包' && /rgb\(22\d, 2\d\d, 25\d\)/.test(skin.ink));
 
   console.log(errs.length ? '\n运行时错误:\n' + errs.slice(0, 5).join('\n') : '\n无 JS 错误');
   await browser.close();

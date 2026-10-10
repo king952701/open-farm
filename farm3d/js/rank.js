@@ -10,14 +10,15 @@
   /* ============================ 技能表 ============================ */
   /* 8 项主技能，对应采集 / 生产 / 战斗 / 副职业 */
   const SK = (F.SKILLS = {
-    farm: { name: '农耕', icon: '耕', c: '#8fc86a' },
-    gather: { name: '采集', icon: '采', c: '#7fc0a0' },
-    mine: { name: '挖矿', icon: '矿', c: '#c8a06a' },
-    fish: { name: '钓鱼', icon: '渔', c: '#6ac0e0' },
-    combat: { name: '战斗', icon: '战', c: '#e0785a' },
-    ranch: { name: '畜牧', icon: '牧', c: '#e0b46a' },
-    cook: { name: '烹饪', icon: '烹', c: '#e88a6a' },
-    alchemy: { name: '炼金', icon: '炼', c: '#b08ae8' },
+    /* 科幻霓虹图标色：六边形能量块用，深色面板上要亮得住 */
+    farm: { name: '农耕', icon: '耕', c: '#7ff0a8' },
+    gather: { name: '采集', icon: '采', c: '#3fe0c8' },
+    mine: { name: '挖矿', icon: '矿', c: '#ffd45a' },
+    fish: { name: '钓鱼', icon: '渔', c: '#5ad2ff' },
+    combat: { name: '战斗', icon: '战', c: '#ff6b7a' },
+    ranch: { name: '畜牧', icon: '牧', c: '#ffb454' },
+    cook: { name: '烹饪', icon: '烹', c: '#ff9a6a' },
+    alchemy: { name: '炼金', icon: '炼', c: '#c08cff' },
   });
 
   /* 工具熟练度（与技能分开统计） */

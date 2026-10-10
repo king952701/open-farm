@@ -190,10 +190,11 @@
 
     const P = F.Player;
     elVitals.innerHTML =
-      bar('生命', P.hp, '#e05a5a') +
-      bar('饥饿', P.hunger, '#e8a04a') + bar('体力', P.energy, '#5ac07a') +
-      `<div class="vrow"><span>水壶</span><div class="vbar"><i style="width:${(G.can / 10 * 100)}%;background:#6fc8e0"></i></div><em>${Math.ceil(G.can)}/10</em></div>` +
-      `<div class="vrow"><span>金币</span><div class="vbar"><i style="width:100%;background:#f0c840"></i></div><em>${G.coins}</em></div>`;
+      /* 科幻配色的状态条：红→品红、橙→琥珀、绿→青（与 --green 主色一致） */
+      bar('生命', P.hp, '#ff5470') +
+      bar('饥饿', P.hunger, '#ffb454') + bar('体力', P.energy, '#3fe0c8') +
+      `<div class="vrow"><span>水壶</span><div class="vbar"><i style="width:${(G.can / 10 * 100)}%;background:#5ad2ff"></i></div><em>${Math.ceil(G.can)}/10</em></div>` +
+      `<div class="vrow"><span>金币</span><div class="vbar"><i style="width:100%;background:#ffd45a"></i></div><em>${G.coins}</em></div>`;
 
     mmT -= dt;
     if (mmT <= 0) { mmT = 0.25; drawMinimap(); }
