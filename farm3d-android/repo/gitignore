@@ -1,0 +1,17 @@
+# 生成的产物
+farm3d-android/app/src/main/assets/js/
+farm3d-android/app/src/main/assets/vendor/
+farm3d-android/app/src/main/assets/index.html
+farm3d-android/app/src/main/assets/m.html
+farm3d-android/app/build/
+farm3d-android/build/
+farm3d-android/.gradle/
+farm3d-android/local.properties
+
+# 开发与测试中间文件
+node_modules/
+_r*.txt
+_o.txt
+_t.js
+*.log
+.DS_Store

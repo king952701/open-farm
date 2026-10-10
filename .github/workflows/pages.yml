@@ -1,0 +1,49 @@
+# =============================================================================
+# 网页版上线（GitHub Pages）
+#
+# 【放置位置】仓库根 .github/workflows/pages.yml（由 _farm_stage.ps1 自动拷贝过去）
+# 【做什么】把 farm3d/ 整个目录作为静态站点发布，无需构建、无需打包：
+#           https://<owner>.github.io/open-farm/
+# 【前提】仓库 Settings → Pages → Source 选「GitHub Actions」（首次由推送脚本自动开启，
+#         若没开成功，到页面上手动选一次即可）
+# =============================================================================
+name: 部署网页版
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'farm3d/**'
+      - '.github/workflows/pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      # farm3d/ 就是站点根目录：index.html 在它下面，vendor/ 与 js/ 一起上传
+      - name: 打包站点
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: farm3d
+
+      - name: 发布
+        id: deployment
+        uses: actions/deploy-pages@v4

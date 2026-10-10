@@ -1,0 +1,17 @@
+schema_version: 1
+framework:
+  version: 1.1.3
+  last_upgraded: "2026-10-09"
+project:
+  name: "牧野田园 Open Farm"
+  stage: Production
+  code_root: js
+  # 沿用项目既有约定：测试不是 tests/ 目录，而是根目录的两支脚本
+  smoke: _smoke.js
+  e2e: _e2e.js
+engine:
+  name: "Web"
+  version: "Three.js r159（vendor/three.min.js，无构建链路、无外部资源）"
+modes:
+  rigor: full
+  automation: guided

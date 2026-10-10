@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    // 包名与应用名必须与星海牧场（com.xinghai.ranch）区分开，互不干扰
+    namespace 'com.muye.openfarm'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.muye.openfarm"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            // 用自动生成的 debug 签名，这样 assembleRelease 出来的包可直接安装
+            signingConfig signingConfigs.debug
+        }
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+dependencies {
+    // 官方 AssetLoader：把 assets 映射为 https 源，保证 localStorage 存档可用
+    implementation 'androidx.webkit:webkit:1.8.0'
+}
