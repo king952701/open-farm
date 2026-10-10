@@ -2126,6 +2126,23 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
     sys.btns === 1 && sys.head === '系统菜单' && sys.tiles === 15 && sys.keys === 14 &&
     JSON.stringify(sys.cats) === JSON.stringify(['功能', '社交', '系统']) && sys.invHead === '背包');
 
+  /* 17. 移速：初始移速 ×5（走 4.3→21.5 / 跑 7.4→37 / 游泳 2.9→14.5），实测 1 秒真的走出 20 米上下 */
+  const mvx = await page.evaluate(() => {
+    const F = window.FARM, P = F.Player;
+    F.UI.closePanel();
+    const x0 = P.pos.x, z0 = P.pos.z;
+    const k = F.bind('forward');
+    F.Input.keys = {}; F.Input.keys[k] = true;
+    for (let i = 0; i < 10; i++) P.update(0.1);       /* 固定步长推进 1 秒，不依赖真实帧率 */
+    F.Input.keys = {};
+    const d = Math.hypot(P.pos.x - x0, P.pos.z - z0);
+    P.speed = 0;
+    return { walk: P.SPD.walk, run: P.SPD.run, swim: P.SPD.swim, d: +d.toFixed(1) };
+  });
+  console.log('   移速 =', JSON.stringify(mvx));
+  ok('初始移速 ×5：走 21.5 / 跑 37 / 游泳 14.5，实测 1 秒前进 ≥ 15 米（原 4.3 米/秒）',
+    mvx.walk === 21.5 && mvx.run === 37 && mvx.swim === 14.5 && mvx.d >= 15);
+
   console.log(errs.length ? '\n运行时错误:\n' + errs.slice(0, 5).join('\n') : '\n无 JS 错误');
   await browser.close();
   process.exit(fails ? 1 : 0);

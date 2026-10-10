@@ -168,7 +168,7 @@
       /* 坐骑贴地跟随（略带弹跳节奏） */
       if (M.mesh.visible) {
         const gy = T.hAt(P.pos.x, P.pos.z);
-        const spdK = clamp(P.speed / 6, 0, 1.4);
+        const spdK = clamp(P.speed / (P.SPD.walk * 1.4), 0, 1.4);
         M.mesh.position.set(P.pos.x, gy + Math.abs(Math.sin(P.anim)) * 0.07 * spdK, P.pos.z);
         M.mesh.rotation.y = P.rot;
         /* 奔跑尘土 */

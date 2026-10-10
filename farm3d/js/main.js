@@ -186,12 +186,12 @@
         if (a.act) a.act();
         return;
       }
-      const step = Math.min(4.3 * dt, d);
+      const step = Math.min(F.Player.SPD.walk * dt, d);
       P.pos.x += dx / d * step;
       P.pos.z += dz / d * step;
       P.pos.y = Math.max(T.hAt(P.pos.x, P.pos.z), T.WATER);
       P.rot += F.angDelta(P.rot, Math.atan2(dx, dz)) * Math.min(1, dt * 10);
-      P.speed = 4.3;
+      P.speed = F.Player.SPD.walk;
     },
 
     /* ---------------- 储物箱（屋内，可升级） ---------------- */

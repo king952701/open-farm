@@ -64,6 +64,10 @@
   /* ============================ 玩家 ============================ */
   const P = (F.Player = {
     pos: new THREE.Vector3(SPAWN.x, 0, SPAWN.z),
+    /* 移速唯一数据源（米/秒）：走路 / 奔跑 / 游泳。
+       自动寻路、腿部动画、坐骑起伏都引用它，改这里全站一致
+       2026-10：整体 ×5（原 走 4.3 / 跑 7.4 / 游泳 2.9） */
+    SPD: { walk: 21.5, run: 37, swim: 14.5 },
     rot: 0, vy: 0, onGround: true, speed: 0, anim: 0,
     camYaw: Math.PI, camPitch: 0.42, camDist: 7.2,
     tool: 'none', toolMesh: null, action: null, actionT: 0,
@@ -141,7 +145,7 @@
         const mz = dirZ * iz + rightZ * ix;
         const rid = F.Mounts && F.Mounts.curMount ? F.Mounts.curMount() : null;
         const wx = F.Weather ? F.Weather.m('speed', 1) : 1;
-        const base = P.swimming ? 2.9 : (run ? 7.4 : 4.3) * (rid ? rid.mul : 1) * wx;
+        const base = P.swimming ? P.SPD.swim : (run ? P.SPD.run : P.SPD.walk) * (rid ? rid.mul : 1) * wx;
         const hungry = P.hunger <= 0 ? 0.62 : 1;
         sp = base * hungry;
         if (P.action) sp *= 0.35;
@@ -244,7 +248,7 @@
       const M = P.model;
       M.group.position.copy(P.pos);
       M.group.rotation.y = P.rot;
-      const walkK = clamp(P.speed / 4.3, 0, 2);
+      const walkK = clamp(P.speed / P.SPD.walk, 0, 2);
       P.anim += dt * (1.6 + walkK * 8.5);
       const sw = Math.sin(P.anim) * 0.62 * clamp(walkK, 0, 1.3);
       if (P.swimming) {
