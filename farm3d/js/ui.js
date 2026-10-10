@@ -109,7 +109,6 @@
       else if (k === F.bind('alt')) F.Inter.pressG();
       else if (k === F.bind('map')) U.togglePanel('map');
       else if (k === 'escape') {
-        U.setCursor(false);                                  /* Esc 第一件事：把指针还给玩家 */
         if (F.Inter.build || F.Inter.removeMode || F.Inter.moveMode) F.Inter.exitAll();
         else if (curPanel) U.closePanel();
         else U.openPanel('settings');
@@ -437,9 +436,6 @@
   }
   U.closePanel = function () { pDrag = null; elPanel.style.display = 'none'; elPanel.innerHTML = ''; curPanel = null; };
   U.togglePanel = function (n) { if (curPanel === n) U.closePanel(); else U.openPanel(n); };
-  /* 指针显隐：藏起来只用 CSS 把画布上的 cursor 置 none，
-     UI 元素自带的 cursor:pointer 不会被波及 —— 移上去自然显回箭头 */
-  U.setCursor = function (hidden) { document.documentElement.classList.toggle('cur-none', !!hidden); };
   U.panelShell = panelShell;
   U.setPanel = function (n) { curPanel = n; };
   U.getPanel = function () { return curPanel; };

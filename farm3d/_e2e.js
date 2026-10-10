@@ -1862,22 +1862,18 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   ok('刷新页面后读档恢复（含坐骑）', loaded.builds === saved.builds.length && loaded.tilled >= 1 && loaded.mounts >= 1);
   console.log('   读档状态 =', JSON.stringify(loaded));
 
-  /* 7. 鼠标指针：进入世界自动隐藏，按 Esc 取回（UI 悬停仍显示箭头） */
-  const cur1 = await page.evaluate(() => ({
-    cv: getComputedStyle(document.getElementById('cv')).cursor,
-    cls: document.documentElement.classList.contains('cur-none'),
-  }));
+  /* 7. 鼠标指针始终可见（曾做过「进入世界自动隐藏」，玩家不要，已撤 —— 这条断言守住别再加回来） */
   await page.keyboard.press('Escape');
   await page.waitForTimeout(250);
-  const cur2 = await page.evaluate(() => ({
+  const cur = await page.evaluate(() => ({
     cv: getComputedStyle(document.getElementById('cv')).cursor,
     cls: document.documentElement.classList.contains('cur-none'),
     panel: (document.querySelector('#panel .phead h3') || {}).textContent || '',
   }));
-  console.log('   指针 =', JSON.stringify({ before: cur1, afterEsc: cur2 }));
-  ok('进入游戏画布自动隐藏鼠标指针 · 按 Esc 显回',
-    cur1.cv === 'none' && cur1.cls && cur2.cv !== 'none' && !cur2.cls);
   await page.evaluate(() => window.FARM.UI.closePanel());
+  console.log('   指针 =', JSON.stringify(cur));
+  ok('鼠标指针不做隐藏：画布上始终可见，Esc 依旧打开设置面板',
+    cur.cv !== 'none' && !cur.cls && cur.panel === '设置');
 
   /* 9. 镜头自动跟随：横移（A）时角色朝向与镜头前方有夹角，相机应自己绕过去；
      关掉开关后相机保持不动（量相机 yaw 的净变化，角色朝向在移动中本来就会转） */
