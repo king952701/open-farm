@@ -1189,8 +1189,9 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   const about = await page.evaluate(() => {
     const F = window.FARM;
     F.UI.closePanel();                                     /* 上一段测试留着设置面板开着，先关掉再点，否则是 toggle 关面板 */
-    const btn = document.getElementById('btn-about');
-    if (btn) btn.click();                                  /* 右下角入口按钮 */
+    F.UI.openPanel('sys');                                 /* 右下角入口已收进系统菜单 */
+    const tile = Array.prototype.find.call(document.querySelectorAll('#panel .sys-tile'), e => /关于/.test(e.textContent));
+    if (tile) tile.click();
     const box = document.querySelector('#panel .panel');
     const t = box ? box.textContent : '';
     const on = (document.querySelector('#panel .ranktabs .rt.on') || {}).textContent || '';
@@ -2105,6 +2106,25 @@ fs.writeFileSync(TMP_PIC, Buffer.from(
   ok('科幻皮肤：面板深空玻璃渐变 + 青色描边发光 + 标题栏青色能量条 + 全站亮色文字',
     skin.accent === '#3fe0c8' && skin.panelGrad && skin.panelCyan && skin.headGlow &&
     skin.title === '背包' && /rgb\(22\d, 2\d\d, 25\d\)/.test(skin.ink));
+
+  /* 16. 系统菜单：15 个竖排按钮收进宫格面板，入口唯一、分组齐全、点格子能开对应面板 */
+  const sys = await page.evaluate(() => {
+    const F = window.FARM;
+    const btns = document.querySelectorAll('#corner .cbtn').length;
+    F.UI.openPanel('sys');
+    const head = (document.querySelector('#panel .phead h3') || {}).textContent || '';
+    const tiles = [...document.querySelectorAll('#panel .sys-tile')];
+    const cats = [...document.querySelectorAll('#panel .pcat')].map(e => e.textContent);
+    /* 点「背包」格子 → 背包面板应打开 */
+    tiles.find(t => /背包/.test(t.textContent)).click();
+    const invHead = (document.querySelector('#panel .phead h3') || {}).textContent || '';
+    return { btns, head, tiles: tiles.length, keys: tiles.filter(t => t.querySelector('.tk')).length,
+      cats, invHead };
+  });
+  console.log('   系统菜单 =', JSON.stringify(sys));
+  ok('系统菜单：右下角仅 1 个入口 · 宫格 15 项全部带图标 + 14 个快捷键角标 · 功能/社交/系统 三组 · 点格开面板',
+    sys.btns === 1 && sys.head === '系统菜单' && sys.tiles === 15 && sys.keys === 14 &&
+    JSON.stringify(sys.cats) === JSON.stringify(['功能', '社交', '系统']) && sys.invHead === '背包');
 
   console.log(errs.length ? '\n运行时错误:\n' + errs.slice(0, 5).join('\n') : '\n无 JS 错误');
   await browser.close();

@@ -114,23 +114,8 @@
         else U.openPanel('settings');
       }
     });
-    F.$('#btn-build').onclick = () => U.openPanel('build');
-    F.$('#btn-inv').onclick = () => U.togglePanel('inv');
-    F.$('#btn-help').onclick = () => { U.setTab = 'manual'; U.togglePanel('settings'); };
-    F.$('#btn-about').onclick = () => { U.setTab = 'about'; U.togglePanel('settings'); };
-    F.$('#btn-set').onclick = () => U.togglePanel('settings');
-    /* 不给「关于」绑快捷键：? 与 / 已经是手册的入口，再绑会跟上面的 keydown 双重 toggle */
-    const bind = (id, fn) => { const e = F.$(id); if (e) e.onclick = fn; };
-    bind('#btn-skill', () => U.togglePanel('skill'));
-  bind('#btn-chat', () => F.UI2 && F.UI2.toggleChat());
-    bind('#btn-friends', () => U.togglePanel('friends'));
-    bind('#btn-guild', () => U.togglePanel('guild'));
-    bind('#btn-party', () => U.togglePanel('party'));
-    bind('#btn-ah', () => U.togglePanel('auction'));
-    bind('#btn-rank', () => U.togglePanel('rank'));
-    bind('#btn-mount', () => U.togglePanel('mounts'));
-    bind('#btn-arena', () => U.togglePanel('arena'));
-    bind('#btn-home', () => F.HomeBuild && F.HomeBuild.panel());
+    /* 系统菜单：右下角唯一入口，15 个功能按钮收进宫格面板（快捷键照旧，见上方 keydown） */
+    F.$('#btn-sys').onclick = () => U.togglePanel('sys');
   };
 
   U.syncHotbar = function () {
@@ -451,6 +436,7 @@
     if (n === 'mounts' && F.UI2) return F.UI2.panelMounts();
     if (n === 'arena' && F.UI2) return F.UI2.panelArena();
     if (n === 'homebuild' && F.HomeBuild) return F.HomeBuild.panel();
+    if (n === 'sys') return panelSys();
     if (n === 'skill') return panelSkill();
     if (n === 'build') return panelBuild();
     if (n === 'inv') return panelInv();
@@ -674,6 +660,55 @@
     b3.onclick = e => { e.stopPropagation(); sellFromInv(k); };
     d.appendChild(b3);
     return d;
+  }
+
+  /* ============================ 系统菜单 ============================
+     ponytail: 15 个竖排 .cbtn 收进一个宫格面板。SYS_ITEMS 是唯一数据，
+     加新功能面板只需在这里添一行，快捷键仍由 keydown 统一处理 */
+  const SYS_ITEMS = [
+    { cat: '功能' },
+    { n: 'inv', name: '背包', ic: '包', key: 'I' },
+    { n: 'build', name: '建造', ic: '建', key: 'B' },
+    { n: 'skill', name: '技能', ic: '技', key: 'L' },
+    { n: 'homebuild', name: '家园', ic: '家', key: 'V' },
+    { n: 'mounts', name: '坐骑', ic: '骑', key: 'M' },
+    { cat: '社交' },
+    { n: 'chat', name: '聊天', ic: '聊', key: 'T' },
+    { n: 'friends', name: '好友', ic: '友', key: 'K' },
+    { n: 'guild', name: '公会', ic: '会', key: 'U' },
+    { n: 'party', name: '队伍', ic: '队', key: 'P' },
+    { n: 'auction', name: '拍卖', ic: '拍', key: 'Y' },
+    { n: 'rank', name: '排行', ic: '榜', key: 'J' },
+    { n: 'arena', name: '斗兽', ic: '兽', key: 'N' },
+    { cat: '系统' },
+    { n: 'settings', name: '设置', ic: '设', key: 'O' },
+    { n: 'manual', name: '帮助', ic: '助', key: 'H' },
+    { n: 'about', name: '关于', ic: '卷', key: '' },
+  ];
+  function sysGo(it) {
+    U.closePanel();
+    if (it.n === 'chat') { if (F.UI2) F.UI2.toggleChat(); return; }
+    if (it.n === 'homebuild') { if (F.HomeBuild) F.HomeBuild.panel(); return; }
+    /* 帮助 / 关于 = 设置面板的对应标签页（不给「关于」绑快捷键：? 与 / 已是手册入口） */
+    if (it.n === 'manual' || it.n === 'about') { U.setTab = it.n; U.togglePanel('settings'); return; }
+    U.togglePanel(it.n);
+  }
+  function panelSys() {
+    const { body } = panelShell('系统菜单', '全部功能入口 · 快捷键照旧可用');
+    let grid = null;
+    for (const it of SYS_ITEMS) {
+      if (it.cat) {
+        body.appendChild(F.el('div', 'pcat', it.cat));
+        grid = F.el('div', 'sys-grid');
+        body.appendChild(grid);
+        continue;
+      }
+      const d = F.el('div', 'sys-tile');
+      d.innerHTML = `<div class="ic">${it.ic}</div><div class="tn">${it.name}</div>` +
+        (it.key ? `<div class="tk">${it.key}</div>` : '');
+      d.onclick = () => sysGo(it);
+      grid.appendChild(d);
+    }
   }
 
   function panelBuild() {

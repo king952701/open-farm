@@ -72,6 +72,21 @@ html.mobile #corner{touch-action:pan-y}
 .cbtn:hover{background:var(--hi);border-color:var(--green);box-shadow:var(--sh),var(--glow);transform:translateY(-1px)}
 .cbtn b{color:var(--green2);font-weight:700;text-shadow:0 0 8px rgba(90,210,255,.5)}
 
+/* ---------- 系统菜单宫格：原 15 个竖排按钮收纳于此（M3E 设计稿落地） ---------- */
+.sys-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.sys-tile{cursor:pointer;background:var(--surf);border:1px solid var(--bd);border-radius:3px;
+  padding:9px 12px;display:flex;align-items:center;gap:10px;transition:.15s;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)}
+.sys-tile:hover{background:var(--hi);border-color:var(--green);box-shadow:var(--glow)}
+.sys-tile .ic{width:34px;height:34px;flex:0 0 34px;
+  background:linear-gradient(160deg,rgba(90,210,255,.30),rgba(63,224,200,.16));
+  color:#c9f6ff;display:grid;place-items:center;font-size:16px;font-weight:700;
+  border:1px solid rgba(90,210,255,.45);box-shadow:0 0 12px rgba(90,210,255,.28);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.sys-tile .tn{font-size:13.5px;color:var(--ink);font-weight:600}
+.sys-tile .tk{margin-left:auto;font-size:11px;color:var(--green2);border:1px solid var(--bd);
+  border-radius:2px;padding:1px 6px;font-variant-numeric:tabular-nums;text-shadow:0 0 8px rgba(90,210,255,.5)}
+
 /* ---------- 底部：提示 / 进度 / 快捷栏 ---------- */
 #prompt{position:absolute;left:50%;bottom:118px;transform:translateX(-50%);
   background:linear-gradient(180deg,rgba(10,26,42,.92),rgba(6,16,26,.9));color:#e6f7ff;
@@ -118,8 +133,7 @@ html.mobile #corner{touch-action:pan-y}
 #seedbar{position:absolute;left:50%;bottom:80px;transform:translateX(-50%);display:none;gap:6px}
 
 /* ---------- 技能条：右下三槽。[Q] / [E] / 鼠标右键，触摸端直接点按钮 ----------
-   ponytail: #corner 那列功能按钮本身就有十来个、高度接近满屏，绝不能再往里面叠。
-   技能条单独一列、水平给它让开位置（corner 宽 96 + 边距 14 + 间隙 12） */
+   功能按钮已收纳进「系统菜单」（右下角唯一一个 .cbtn），技能条与它并排不拥挤 */
 #skillbar{position:absolute;right:calc(122px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));
   display:flex;flex-direction:column;gap:9px}
 .sb{pointer-events:auto;cursor:pointer;width:84px;min-height:52px;border-radius:3px;
@@ -544,21 +558,7 @@ html.mobile #corner{touch-action:pan-y}
   <div id="skillbar"></div>
 
   <div id="corner">
-    <div class="cbtn" id="btn-build">建造 <b>B</b></div>
-    <div class="cbtn" id="btn-inv">背包 <b>I</b></div>
-    <div class="cbtn" id="btn-skill">技能 <b>L</b></div>
-    <div class="cbtn" id="btn-chat">聊天 <b>T</b></div>
-    <div class="cbtn" id="btn-friends">好友 <b>K</b></div>
-    <div class="cbtn" id="btn-guild">公会 <b>U</b></div>
-    <div class="cbtn" id="btn-party">队伍 <b>P</b></div>
-    <div class="cbtn" id="btn-ah">拍卖 <b>Y</b></div>
-    <div class="cbtn" id="btn-rank">排行 <b>J</b></div>
-    <div class="cbtn" id="btn-mount">坐骑 <b>M</b></div>
-    <div class="cbtn" id="btn-arena">斗兽 <b>N</b></div>
-    <div class="cbtn" id="btn-home">家园 <b>V</b></div>
-    <div class="cbtn" id="btn-help">帮助 <b>H</b></div>
-    <div class="cbtn" id="btn-about">关于</div>
-    <div class="cbtn" id="btn-set">设置 <b>O</b></div>
+    <div class="cbtn" id="btn-sys"><b>☰</b> 系统菜单</div>
   </div>
 
   <div id="targethp">

@@ -114,11 +114,24 @@ const ASSETS = path.join(__dirname, '..', 'farm3d-android', 'app', 'src', 'main'
   ok('站到浆果丛旁出现采集提示，点「交互」真的割到浆果',
     harvest.found && /采集/.test(promptTxt) && after.berry > harvest.before);
 
-  /* 4. 菜单展开 + 面板可用 */
+  /* 4. 菜单展开 + 系统菜单宫格 + 面板可用（功能按钮已收进「系统菜单」） */
   await page.evaluate(() => document.getElementById('mmenu').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })));
   await page.waitForTimeout(200);
   const menuOpen = await page.evaluate(() => getComputedStyle(document.getElementById('corner')).display);
-  await page.evaluate(() => { const b = document.getElementById('btn-inv'); b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); b.click(); });
+  await page.evaluate(() => {
+    const s = document.getElementById('btn-sys');
+    s.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); s.click();
+  });
+  await page.waitForTimeout(400);
+  const sysM = await page.evaluate(() => ({
+    head: (document.querySelector('#panel .phead h3') || {}).textContent || '',
+    tiles: document.querySelectorAll('#panel .sys-tile').length,
+  }));
+  await page.evaluate(() => {
+    const t = Array.prototype.find.call(document.querySelectorAll('#panel .sys-tile'),
+      e => /背包/.test(e.textContent));
+    t.click();
+  });
   await page.waitForTimeout(500);
   const panel = await page.evaluate(() => ({
     shown: document.getElementById('panel').style.display,
@@ -126,16 +139,19 @@ const ASSETS = path.join(__dirname, '..', 'farm3d-android', 'app', 'src', 'main'
     width: (document.querySelector('#panel .panel') || {}).clientWidth || 0,
     vw: innerWidth,
   }));
-  console.log('   菜单/面板 =', JSON.stringify({ menuOpen, panel }));
-  ok('「菜单」展开功能按钮列 · 面板在手机宽度内打开（背包）',
-    menuOpen === 'flex' && /flex/.test(panel.shown) && /背包/.test(panel.head) && panel.width > 0 && panel.width <= panel.vw);
+  console.log('   菜单/面板 =', JSON.stringify({ menuOpen, sysM, panel }));
+  ok('「菜单」展开入口 · 系统菜单宫格 15 项 · 面板在手机宽度内打开（背包）',
+    menuOpen === 'flex' && sysM.head === '系统菜单' && sysM.tiles === 15 &&
+    /flex/.test(panel.shown) && /背包/.test(panel.head) && panel.width > 0 && panel.width <= panel.vw);
 
-  /* 5. 致谢页在手机上也能打开（点「菜单」→ 关于） */
+  /* 5. 致谢页在手机上也能打开（点「菜单」→ 系统菜单 → 关于） */
   await page.evaluate(() => {
     const F = window.FARM;
     F.UI.closePanel();
-    const b = document.getElementById('btn-about');
-    if (b) b.click();
+    F.UI.openPanel('sys');
+    const t = Array.prototype.find.call(document.querySelectorAll('#panel .sys-tile'),
+      e => /关于/.test(e.textContent));
+    if (t) t.click();
   });
   await page.waitForTimeout(400);
   const aboutM = await page.evaluate(() => {
